@@ -1,0 +1,41 @@
+#!/bin/bash
+#set -e
+set -x
+process=$1
+Tmachine=$2
+k=$3
+#password=$3
+
+execute_remotely()
+{
+        result=$(ssh -o "StrictHostKeyChecking=no" -q -t $Tmachine "$1")
+        echo ${result:0:-1}
+}
+execute_remotely_simple()
+{
+	ssh -o "StrictHostKeyChecking=no" -q -t $Tmachine "$1"
+}
+
+process_arch=$process"_aarch64"
+cp /popcorn/brdw/$process_arch /popcorn/brdw/$process
+wait
+
+while [ -z "$pid" ]
+do
+	/popcorn/brdw/$process $k >/dev/null 2>&1 &
+	pid=$(ps -C $process | tr -s ' '  | cut -d ' ' -f 1 | tail -n +2)
+done
+echo "Process: $process ---------------------------------------------------------------- ">> /popcorn/brdw/dump_time.log
+mkdir /popcorn/brdw/x86_64
+criu-het dump --arch x86-64 -j -t $pid >> /popcorn/brdw/dump_time.log 2>&1  &
+sleep 3 
+mv /popcorn/brdw/*.img /popcorn/brdw/x86_64/
+crit show stats-dump >>/popcorn/brdw/dump_time.log 2>&1 &
+sleep 2
+ls -lh /popcorn/brdw/x86_64/ >>/popcorn/brdw/dump_time.log
+sleep 2 
+scp -r "/popcorn/brdw/x86_64" $Tmachine:/popcorn/brdw/
+wait
+rm -r /popcorn/brdw/x86_64/
+execute_remotely_simple "arm_x86_receiver $process $k"
+echo "-----------------------------------------------------------------------------------">>/popcorn/brdw/dump_time.log

@@ -1,0 +1,43 @@
+#!/bin/bash
+#set -e
+#set -x
+process=$1
+k=$2
+#rm -r /popcorn/brdw/aarch64
+process_arch=$process"_x86-64"
+cp /popcorn/brdw/$process_arch /popcorn/brdw/$process
+echo "Process: $process $k---------------------------------------------------------------- ">>/popcorn/brdw/restore_time.log
+while [ -z "$pid" ]
+do
+        criu-het restore --images-dir /popcorn/brdw/x86_64/ --work-dir /popcorn/brdw/  -j >/dev/null 2>&1 &
+        pid=$(ps -C $process | tr -s ' '  | cut -d ' ' -f 2 | tail -n +2)
+done
+echo $pid >>/popcorn/brdw/restore_time.log
+kill -9 $pid
+crit show /popcorn/brdw/stats-restore>>/popcorn/brdw/restore_time.log 2>&1
+rm -r /popcorn/brdw/x86_64
+rm /popcorn/brdw/stats-restore
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
